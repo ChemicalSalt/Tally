@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from auth import init_oauth, login_required
 from db import get_or_create_user, save_expense, get_expenses, delete_expense, update_budget
 from datetime import datetime
+import logging
 import os
 
 load_dotenv()
@@ -11,6 +12,8 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+
+logging.basicConfig(level=logging.DEBUG)
 
 google = init_oauth(app)
 
@@ -122,6 +125,11 @@ def set_budget():
 @app.route('/ping')
 def ping():
     return jsonify({"status": "alive"})
+
+@app.errorhandler(500)
+def internal_error(error):
+    import traceback
+    return f"<pre>{traceback.format_exc()}</pre>", 500
 
 if __name__ == '__main__':
     app.run(debug=True)
