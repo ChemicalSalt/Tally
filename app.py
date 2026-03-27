@@ -12,6 +12,8 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -51,22 +53,26 @@ def google_login():
 
 @app.route('/auth/google/callback')
 def google_callback():
-    token = google.authorize_access_token()
-    userinfo = token['userinfo']
-    user = get_or_create_user(
-        google_id=userinfo['sub'],
-        name=userinfo['name'],
-        email=userinfo['email'],
-        picture=userinfo.get('picture', '')
-    )
-    session['user'] = {
-        'google_id': userinfo['sub'],
-        'name': userinfo['name'],
-        'email': userinfo['email'],
-        'picture': userinfo.get('picture', ''),
-        'monthly_budget': user.get('monthly_budget', 0)
-    }
-    return redirect(url_for('index'))
+    try:
+        token = google.authorize_access_token()
+        userinfo = token['userinfo']
+        user = get_or_create_user(
+            google_id=userinfo['sub'],
+            name=userinfo['name'],
+            email=userinfo['email'],
+            picture=userinfo.get('picture', '')
+        )
+        session['user'] = {
+            'google_id': userinfo['sub'],
+            'name': userinfo['name'],
+            'email': userinfo['email'],
+            'picture': userinfo.get('picture', ''),
+            'monthly_budget': user.get('monthly_budget', 0)
+        }
+        return redirect(url_for('index'))
+    except Exception as e:
+        import traceback
+        return f"<pre>ERROR:\n{traceback.format_exc()}</pre>", 500
 
 @app.route('/logout')
 def logout():
